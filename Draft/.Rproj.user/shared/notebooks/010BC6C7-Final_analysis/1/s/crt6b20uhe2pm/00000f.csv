@@ -1,0 +1,7 @@
+"0","#| message: false"
+"0","#| warning: false"
+"0","#| echo: false"
+"0","### Data set for Body Mass"
+"0","newAves <-new |> filter(Aves == ""Y"") |> mutate(Ref = ifelse( Sec_Ref == ""Campione_et_al_(2014)"", ""Campione_et_al_2014"", ifelse( Sec_Ref == ""Field_et_al_(2013)"",""Field_et_al_2013"", ifelse( typeFC == ""Predicted"", ""NewSource"", ""NewSource""))))  |> filter(!is.na(BM.g) & !is.na(FemurCirc))"
+"0",""
+"0",""

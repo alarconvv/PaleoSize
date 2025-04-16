@@ -1,0 +1,6 @@
+"0","#| echo: false"
+"0","#| output: false"
+"0","# Data set for Femur Circumference prediction"
+"0",""
+"0","avesFCFL <- data |> filter( Aves == ""Y"" & !is.na(FemurCirc) & !is.na(FemurLen))"
+"0",""

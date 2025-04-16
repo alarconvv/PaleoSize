@@ -1,0 +1,8 @@
+"0","ggplot(data = RMSE.long, aes(x = model, y = RMSE)) +"
+"0","  geom_line(aes(group = type, color = type) )+ "
+"0","  geom_point(aes(color = model), size= 4)+"
+"0","    theme_gray(base_size = 20)+"
+"0","  theme(legend.position=""none"")+"
+"0","scale_x_discrete(guide = guide_axis(angle = 45))+"
+"0","geom_segment(aes(x = 5, y = 4, xend = 5, yend = 0.5), color= ""darkred"","
+"0","                  arrow = arrow(length = unit(0.5, ""cm"")))"

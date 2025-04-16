@@ -1,0 +1,8 @@
+"0","#| message: false"
+"0","#| warning: false"
+"0","#| echo: false"
+"0","#| "
+"0","modelsPPE <- modelsPredict.BackDinos |> group_by(Models) |> mutate(PPE = (abs(as.numeric(trueBM.g) - as.numeric(predBM.g))/as.numeric(predBM.g))/100) "
+"0",""
+"0","meanPPE.th <- modelsPPE |> group_by(Models) |> summarize( MPPE = mean(PPE), sdPE = sd(PPE))"
+"0",""

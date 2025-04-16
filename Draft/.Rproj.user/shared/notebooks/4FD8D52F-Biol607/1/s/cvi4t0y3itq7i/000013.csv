@@ -1,0 +1,5 @@
+"0","ggplot(data = modelsPredict.backPalae) +"
+"0","  geom_smooth(aes(y = predBM.g, x = FemurCirc, color = Models)) +"
+"0","  geom_point(data = palaeognathae,aes(y = BM.g, x = FemurCirc)) + theme_gray(base_size = 20)+"
+"0","  theme(title = element_text(size = 25,face = ""bold""),axis.title = element_text(size = 20), legend.title = element_text(size = 20))+"
+"0"," labs(title = ""How models fit to actual Body Mass"",y = ""Body Mass (g)"", x = ""Femur Circumference"")"

@@ -1,0 +1,8 @@
+"0","#| message: false"
+"0","#| warning: false"
+"0","#| font-size: 1em"
+"0","#| "
+"0","ggplot(data = fitvals_FC.long) +"
+"0","  geom_line(aes(x = FemurLen, y = FemurCirc, color = model)) +"
+"0","  geom_point(data = avesFCFL.train, aes(x=FemurLen, y=FemurCirc), size = 0.5, alpha = 1, color = 'darkblue')+"
+"0","  theme_gray(base_size = 35)"

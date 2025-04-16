@@ -1,0 +1,1148 @@
+---
+title: "Predicting body mass in bipedal dinosaurs"
+author: "Viviana Romero Alarcon"
+format: html
+      
+editor: visual
+---
+
+::: {style="text-align: justify"}
+
+## Introduction
+
+Body mass (BM) is one of the most significant variables in the biology of an organism. It could provide insights into their physiology, ecology, or behavior. Indeed, it could influence speciation and extinction rates; driving patterns such as gigantism in some vertebrates like dinosaurs, whales, and palaeognathaes [@ChristiansenFarina2004, @CampioneEvans2020]. However, while obtaining BM data from extant species is relatively straightforward, it becomes challenging when attempting to obtain this variable for extinct organisms. Therefore, prediction becomes the only viable method to obtain this feature[@CampionEvans2012].
+
+Various methods exist to reconstruct body size, shape, and weight from preserved skeletons (Fossils). The most popular approaches are volumetric density (VD) and extant scaling (ES). Although VD was the initial proposal for calculating BM, ES is currently the most widely used tool. It is based on linear models, is easy to replicate and use, and is more cost-effective compared to the scans used by VD [@Andersonetal1985]. However, current models have faced criticism due to their potential to over- or under-estimate BM. Another challenge arises from the distinct distribution of mass in quadrupeds compared to bipeds, leading to more complexities in calculating the BM of bipeds as predictors need to be restricted only to forelimbs [@Campioneetal2014, @campioneEvans2020]. Furthermore, the wide range of BM distribution in modern birds, ranging from 50g to 130,000g, presents an additional challenge, especially when the presence of giantism in the Palaeognatha group is considered as an outlier in the distribution.
+
+To address the biped issue, some researchers have proposed models that exclusively utilize modern birds (excluding Palaeognathes), incorporate humans, or eliminate the humerus as a covariant[@Campioneetal2014]. However, no attempts have been made to fit a model using different datasets, including Palaeognathes as an essential part of the sample. Re-evaluating the proposed models is thus warranted, considering that this group could serve as a good proxy for the BM of dinosaurs.
+
+## Materials and Methods
+
+### Preliminary Therapoda data set
+
+In order to get the preliminary database, I joined observations from Theropoda group, that had avalibale variables such as body mass (BM.g), femur circumference (FemurCirc) and femur length (FemurLen). I gathered those dataset from different sources that have used them mainly for fitting models to predict body mass in non-avian dinosaurs or for evaluating evolutionary and ecological questions. Despite of my aim involved only the three variable named above, I included extra information as sex, estimation type, pneumatic feature among other, for future researching.
+
+### Preliminary Palaeognathae dataset
+
+To include the largest and heaviest living birds in to the the sample, I gathered every published paper with available body mass, and femur circumference or femur length from Palaeognathae group. Most of those observations have been obtained from alive animals, getting only femur length instead of femur circumference measure, given that it is only available from specimens in museums.
+
+Considering this issue, to collect a workable database, I decided to split the experimental design in three different analysis (see @fig-expDesign). Thus, to use Palaeognathae observations to fit models and then to predict body mass, I had first to predict femur circumference from femur length (see @fig-expDesign A), followed by the main analyses (see @fig-expDesign B and C)
+
+![Experimental design](Biol607_files/pics/experimentalDesign2.png){#fig-expDesign .margin-caption}
+
+### Preliminary modeling analysis: Predicting Femur circumference
+
+First off, from preliminary Therapoda and Palaeognathae databases, I filter the observations with femur circumference and length belonging to Class Aves (Crow-group in Therapoda). I explored the relationship between both variables femur circumference and femur length. Then, I decided to fit 12 different models including or not low taxonomic levels (infraclass and order levels) as a categorical co-variant. To get the best model that fitted to my data, I did two parallel analyses (@fig-expDesign A) . For the first one I split the Aves data set in two subsets (training and test). For the training sunset I fit the 12 models ( @tbl-cap-marging-tab4 ) and then use the coefficients to predict the test subset. I compared the real values with the predicted and used Mean Standard Error as model performance measure and AIC as best-model selector. For the second subset, I kept the whole subset and fitted the 12 models using re-sampling K-folds Cross Validation approach. I used 10 folds and 20 re-sampling iterations. In this case I used Root Mean Standard Error as the measure to evaluate model performance and selection.
+
+With the best model I predicted femur circumference from femur length for the Palaeognathae database. I joined both preliminaries databases to make a main database to continue with the main analyses ( @fig-expDesign A and B ).
+
+### Fitting model to predict body mass
+
+using the main database, I explored the relationship between both variables body mass (BM.g) and femur Circumference (FemurCirc). I fitted six models, including linear, polynomials and spline models. In this case I did not considered taxonomic levels given that predicting body mass in non-avian dinosaurs is a extrapolation exercise instead of interpolation inside Aves class.
+
+In the same ways as the last prediction analysis, I repeated the same process ( @fig-expDesign B ). However, instead of using re-sampling K-fold Cross Validation; in this case, I used leave-out-one Cross Validation. I used this technique because the sampling did not take into account taxonomic levels, then if any level has only one observation when it is keep off the level can not be evaluated.
+
+### Comparing previous models with my best model
+
+To evaluate how good my model predict body mass in non-avian dinosaurs, I compared it performance the most used models for this purpose. I got four models from literature: $BM \sim{} 0.16 FemurCirc 2.73$ [@Andersonetal1985], $log10 BM \sim{} 2.411 log10 FemurCirc – 0.065$ [@CambellMarcus1992], $log BM \sim{}2.4 log FemurCirc – 0.11$ [@Fieldetal2013], $log BM \sim{} 2.754 log FemurCirc – 0.683$ [@Campioneetal2014] and one model from this study $log BM \sim{} 2.37699 log FemurCirc -0.09121$.
+
+I compared the performance models in two different stages. From the main database, I filter all non-avian Therapods whose body mass was estimated by Volumetric- density approaches. This subset was used to evaluate models under a extrapolation scenery. Likewise, I filtered Palaeognathae group to evaluate the performance under a interpolation scenery. In both cases, I used mean percentage prediction error (MPPE). Given that models have different scale I had to back transform the result. It could cause bias in estimations such as MSE, confident intervals or predict intervals. This is way in these cases, MPPE is recommended over another measurements [@Smith1980]. Finally, I fixed the seed in 999 for the entire analysis and make it reproducible.
+
+## Results and Discussion
+
+```{r}
+#| echo: false
+#| output: false
+
+
+# Fit seed
+set.seed(999)
+
+# Libraries
+library(caret)
+library(tidyverse)
+library(dplyr)
+library(readr)
+library(ggplot2)
+library(broom)
+library(performance)
+library(here)
+library(gtExtras)
+library(npreg)
+library(knitr)
+library(gt)
+library(ggpubr)
+
+setwd(here::here())
+
+#Preliminar dataset
+
+data <- read_csv("Biol607_files/data/DataBase231129.csv") |>
+  filter(Sec_Ref != "Brinkworth_et_al_2023")  
+
+
+
+```
+
+Preliminary database in therapoda (non-avian + Aves) included 1790 observations, 48 orders and 677 species ( @tbl-cap-marging-tab1 ). This database gathered mainly every observation that has been used to fit models to predict body mass in this group. Also, it included data used for other purpose as evolutionary question. However, I only included observation that correspond to specimen measurements, both alive/museums or fossils . In other words, I did not included averages by species or indirect measurements.
+
+```{r}
+#| tbl-cap-location: margin
+#| message: false
+#| warning: false
+#| echo: false
+#| label: tbl-cap-marging-tab1
+#| tbl-cap: "Preliminary database of Therapoda group."
+
+
+table1 <- data |> 
+  summarise(orders = length(unique(Clade.2)), Species = length(unique(Taxon)), Obs = length(Clade.1) )
+
+gt(table1) |> tab_options(table.width =  "100%") |> 
+  tab_options(column_labels.background.color = "grey90")
+##|>
+#  tab_caption(caption = md("**Table 1** Summary of preliminar dataset."))
+```
+
+Preliminary dataset from Palaeognathae included 115 observations, seven orders and 38 species ( @tbl-cap-marging-tab2 ). Some extinct species in this group were included because they had femur circumference and femur length information. Thus, they were useful to train the model in the preliminary analysis to predict femur circumference.
+
+```{r}
+#| tbl-cap-location: margin
+#| message: false
+#| warning: false
+#| echo: false
+#| label: tbl-cap-marging-tab2
+#| tbl-cap: "Preliminar database from Palaeognathae"
+
+table2 <- data |> filter(Clade.1 == "Palaeognathae" & is.na(FemurCirc) ) |>
+  summarise(orders = length(unique(Clade.2)), Species = length(unique(Taxon)), Obs = length(Clade.1) )
+
+gt(table2) |> tab_options(table.width =  "100%")|> 
+  tab_options(column_labels.background.color = "grey90")
+##|>
+ # tab_caption(caption = md("**Table 2** Summary of preliminar dataset in Palaeognathae"))
+
+```
+
+### Predicting femur circumference
+
+Thus, the data set for predicting femur circumference included only observations from the crown group. This data set included 1172 Observations for 32 orders and 502 species ( @tbl-cap-marging-tab3 ). Something relevant from this data set was that it included Neognathae fossils (Terror birds), which were as big as the biggest alive Palaeognathae. Even though both species are from different infra-classes, they showed the same pattern ( @fig-cap-margin-plot1 C ), supporting the idea that the relationship between these variable is conserved through lower taxonomic levels [@Batesetal2007, @Campione2017]. Nevertheless, although I included big-exticted species from Neognathae, it is clear that Palaeoghnathae, in the crow-group of Ave, has had and had more living and extinct species with large sizes in comparison with the rest of Neognathae ( @fig-cap-margin-plot1 A and B ). This pattern is supported by the idea of these flightless birds has evolved to not to be aerodynamics and pushing giantims in those clades [@Crouchetal2019] .
+
+```{r}
+#| echo: false
+#| output: false
+# Data set for Femur Circumference prediction
+
+avesFCFL <- data |> filter( Aves == "Y" & !is.na(FemurCirc) & !is.na(FemurLen))
+
+```
+
+```{r}
+#| tbl-cap-location: margin
+#| message: false
+#| warning: false
+#| echo: false
+#| label: tbl-cap-marging-tab3
+#| tbl-cap: "Dataset utilized to fit models to predict femur cierumference"
+
+table3 <- avesFCFL |> summarise(orders = length(unique(Clade.2)), Species = length(unique(Taxon)), Obs = length(Clade.1))
+
+gt(table3) |> tab_options(table.width =  "100%")|> 
+  tab_options(column_labels.background.color = "grey90")
+##|>
+#  tab_caption(caption = md("**Table 3** ummary of dataset for predicting femur circumference in #Palaeognathae"))
+
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| label: fig-cap-margin-plot1
+#| fig-cap: "Distribution of dataset used for fit models to predict femur circumference. A) Femur circumference distribution. B) Femur length distribution. C) Relationship between both evaluated variables. Every plot shows data corresponding to Neognathae and Palaeognathae group, as well as, triangle (1) correspond to specimens from extant species and circle (0) specimens from extinct species"
+#| cap-location: margin
+
+
+
+# Femur Circumference distribution
+fcHist <- ggplot(avesFCFL) +
+      geom_histogram(aes( x=FemurCirc, fill= Clade.1)) + 
+  theme(axis.title = element_text(size = 10), legend.position="none")+
+ labs(y = "Count", x = "Femur Circumference (mm)")
+
+# Femur Length distribution
+FlHist <- ggplot(avesFCFL) + 
+  geom_histogram(aes( x=FemurLen, fill= Clade.1)) + 
+  theme(axis.title = element_text(size = 10), legend.position="none")+
+ labs(y = "Count", x = "Femur Lenght (mm)")
+# Plot FC ~ FL
+FcFl <- ggplot(avesFCFL, aes(x=FemurLen, y=FemurCirc)) +
+      geom_point(aes(color= Clade.1, shape = as.factor(Living)))+
+   theme(legend.text = element_text(size = 7),legend.direction = 'vertical',legend.position ="bottom")+
+  theme(axis.title = element_text(size = 10))+
+ labs(y = "Femur Circunference (mm)", x = "Femur Lenght (mm)")
+
+# Extract the legend. Returns a gtable
+leg <- get_legend(FcFl)
+
+
+
+ggarrange(fcHist, FlHist, FcFl+theme(legend.position="none") , as_ggplot(leg), 
+          labels = c("A", "B", "C"),
+          ncol = 2, nrow = 2)
+
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+
+###########
+# Preliminar Analysis: Case 1: Split database in train and test subsets
+###########
+
+sample.test <-c(sample(x = 1:nrow(avesFCFL),size = ceiling(nrow(avesFCFL)* 0.3)),which(avesFCFL$Clade.2 =="Sphenisciformes"))
+
+avesFCFL.test <- avesFCFL[sample.test,]
+avesFCFL.train <- avesFCFL[-sample(x = 1:nrow(avesFCFL),size = ceiling(nrow(avesFCFL)* 0.3)),]
+
+###########
+# Fit models in training data
+###########
+
+# Fit lineal model
+lm_FC_c1 <- lm(FemurCirc ~ FemurLen, data = avesFCFL.train)
+
+# Fit loglog model
+loglog_FC_c1 <- lm(log(FemurCirc) ~ log(FemurLen), data = avesFCFL.train)
+
+# Multiple linear regression Clade 1
+lmClade1_FC_c1 <- lm(FemurCirc ~ FemurLen + Clade.1, data = avesFCFL.train)
+
+
+# Multiple loglog linear regression Clade 1
+logClade1_FC_c1 <- lm(log(FemurCirc) ~ log(FemurLen) + Clade.1, data = avesFCFL.train)
+
+
+# Multiple linear regression Clade 2
+lmClade2_FC_c1 <- lm(FemurCirc ~ FemurLen + Clade.2, data = avesFCFL.train)
+
+# Multiple loglog linear regression Clade 2
+logClade2_FC_c1 <- lm(log(FemurCirc) ~ log(FemurLen) + Clade.2, data = avesFCFL.train)
+
+# Poly model 
+poly2_FC_c1 <- lm(FemurCirc ~ poly(FemurLen,2), data = avesFCFL.train)
+
+
+# Multiple Poly model Clade 1
+poly2Clade1_FC_c1 <- lm(FemurCirc ~ poly(FemurLen,2) + Clade.1 , data = avesFCFL.train)
+
+# Multiple Poly model Clade 2
+poly2Clade2_FC_c1 <- lm(FemurCirc ~ poly(FemurLen,2) + Clade.2, data = avesFCFL.train)
+
+
+# Poly 3model 
+poly3_FC_c1 <- lm(FemurCirc ~ poly(FemurLen,3), data = avesFCFL.train)
+
+# Multiple Poly3 model Clade 1
+poly3Clade1_FC_c1 <- lm(FemurCirc ~ poly(FemurLen,3) + Clade.1 , data = avesFCFL.train)
+
+# Multiple Poly3 model Clade 2
+poly3Clade2_FC_c1 <- lm(FemurCirc ~ poly(FemurLen,3) + Clade.2, data = avesFCFL.train)
+
+fitvals_FC.train_c1 <- data.frame(FemurLen = avesFCFL.train$FemurLen, 
+                         trueFC = avesFCFL.train$FemurCirc,
+                         FC_FL = lm_FC_c1$fitted.values, 
+                         logFC_logFL = exp(loglog_FC_c1$fitted.values),
+                         FC_FL.Clade1 = lmClade1_FC_c1$fitted.values,
+                         logFC_logFL.Clade1 = exp(logClade1_FC_c1$fitted.values),
+                         FC_FL.Cl2 = lmClade2_FC_c1$fitted.values,
+                         logFC_logFL.Clade2 = exp(logClade2_FC_c1$fitted.values),
+                         FC_poly2FL = poly2_FC_c1$fitted.values,
+                         FC_poly2FL.Clade1 = poly2Clade1_FC_c1$fitted.values,
+                         FC_poly2FL.Clade2 = poly2Clade2_FC_c1$fitted.values,
+                         FC_poly3FL = poly3_FC_c1$fitted.values,
+                         FC_poly3FL.Clade1 = poly3Clade1_FC_c1$fitted.values,
+                         FC_poly3FL.Clade2 = poly3Clade2_FC_c1$fitted.values)
+
+
+fitvals_FC.long_c1 <- fitvals_FC.train_c1 %>% pivot_longer(-FemurLen, names_to = 'model', values_to = 'FemurCirc')
+
+
+###########
+# RRMSE in training data: Case 1
+###########
+
+n <- length(avesFCFL.train$FemurLen)
+
+
+lm_FC_RMSE.trainc1 <- ( sum((avesFCFL.train$FemurCirc - lm_FC_c1$fitted.values)^2)/n)
+loglog_FC_RMSE.trainc1 <- ( sum((log(avesFCFL.train$FemurCirc) - loglog_FC_c1$fitted.values)^2)/n)
+lmClade1_FC_RMSE.trainc1 <- ( sum((avesFCFL.train$FemurCirc - lmClade1_FC_c1$fitted.values)^2)/n)
+logClade1_FC_RMSE.trainc1 <- ( sum((log(avesFCFL.train$FemurCirc) - logClade1_FC_c1$fitted.values)^2)/n)
+poly2_FC_RMSE.trainc1 <- ( sum((avesFCFL.train$FemurCirc - poly2_FC_c1$fitted.values)^2)/n)
+poly2Clade1_FC_RMSE.trainc1 <- ( sum((avesFCFL.train$FemurCirc - poly2Clade1_FC_c1$fitted.values)^2)/n)
+poly3_FC_RMSE.trainc1 <- ( sum((avesFCFL.train$FemurCirc - poly3_FC_c1$fitted.values)^2)/n)
+poly3Clade1_FC_RMSE.trainc1 <- ( sum((avesFCFL.train$FemurCirc - poly3Clade1_FC_c1$fitted.values)^2)/n)
+lmClade2_FC_RMSE.trainc1 <- ( sum((avesFCFL.train$FemurCirc - lmClade2_FC_c1$fitted.values)^2)/n)
+logClade2_FC_RMSE.trainc1 <- ( sum((log(avesFCFL.train$FemurCirc) - logClade2_FC_c1$fitted.values)^2)/n)
+poly2Clade2_FC_RMSE.trainc1 <- ( sum((avesFCFL.train$FemurCirc - poly2Clade2_FC_c1$fitted.values)^2)/n)
+poly3Clade2_FC_RMSE.trainc1 <- ( sum((avesFCFL.train$FemurCirc - poly3Clade2_FC_c1$fitted.values)^2)/n)
+
+
+
+RMSE.train_c1 <- data.frame(type = 'train', 
+                        lm_FC_c1 = lm_FC_RMSE.trainc1,
+                       loglog_FC_c1 = loglog_FC_RMSE.trainc1,
+                       lmClade1_FC_c1 = lmClade1_FC_RMSE.trainc1,
+                       logClade1_FC_c1 = logClade1_FC_RMSE.trainc1,
+                       poly2_FC_c1 = poly2_FC_RMSE.trainc1, 
+                       poly2Clade1_FC_c1 = poly2Clade1_FC_RMSE.trainc1,
+                       poly3_FC_c1 = poly3_FC_RMSE.trainc1,
+                       poly3Clade1_FC_c1 = poly3Clade1_FC_RMSE.trainc1,
+                       lmClade2_FC_c1 = lmClade2_FC_RMSE.trainc1,
+                       logClade2_FC_c1 = logClade2_FC_RMSE.trainc1, 
+                       poly2Clade2_FC_c1 = poly2Clade2_FC_RMSE.trainc1,
+                       poly3Clade2_FC_c1 =  poly3Clade2_FC_RMSE.trainc1)
+
+
+###########
+# predicting  in test data
+###########
+
+
+lm_FC_c1.prd <- predict(lm_FC_c1, newdata = data.frame(FemurLen = avesFCFL.test$FemurLen))
+loglog_FC_c1.prd <- predict(loglog_FC_c1, newdata = data.frame(FemurLen = avesFCFL.test$FemurLen))
+lmClade1_FC_c1.prd <- predict(lmClade1_FC_c1, newdata = data.frame(FemurLen = avesFCFL.test$FemurLen,
+                                                                   Clade.1=avesFCFL.test$Clade.1))
+logClade1_FC_c1.prd <- predict(logClade1_FC_c1, newdata = data.frame(FemurLen = avesFCFL.test$FemurLen,
+                                                                   Clade.1=avesFCFL.test$Clade.1))
+poly2_FC_c1.prd <- predict(poly2_FC_c1, newdata = data.frame(FemurLen = avesFCFL.test$FemurLen))
+poly2Clade1_FC_c1.prd <- predict(poly2Clade1_FC_c1, newdata = data.frame(FemurLen = avesFCFL.test$FemurLen,
+                                                                   Clade.1=avesFCFL.test$Clade.1))
+poly3_FC_c1.prd <- predict(poly3_FC_c1, newdata = data.frame(FemurLen = avesFCFL.test$FemurLen))
+poly3Clade1_FC_c1.prd <- predict(poly3Clade1_FC_c1, newdata = data.frame(FemurLen = avesFCFL.test$FemurLen,
+                                                                   Clade.1=avesFCFL.test$Clade.1))
+lmClade2_FC_c1.prd <- predict(lmClade2_FC_c1, newdata = data.frame(FemurLen = avesFCFL.test$FemurLen,
+                                                                   Clade.2=avesFCFL.test$Clade.2))
+logClade2_FC_c1.prd <- predict(logClade2_FC_c1, newdata = data.frame(FemurLen = avesFCFL.test$FemurLen,
+                                                                   Clade.2=avesFCFL.test$Clade.2))
+poly2Clade2_FC_c1.prd <- predict(poly2Clade2_FC_c1, newdata = data.frame(FemurLen = avesFCFL.test$FemurLen,
+                                                                   Clade.2=avesFCFL.test$Clade.2))
+poly3Clade2_FC_c1.prd  <- predict(poly3Clade2_FC_c1, newdata = data.frame(FemurLen = avesFCFL.test$FemurLen,
+                                                                   Clade.2=avesFCFL.test$Clade.2))
+
+
+
+###########
+# RRMSE in predicting data set: Case 1
+###########
+
+n <- length(avesFCFL.test$FemurLen)
+
+lm_FC_RMSE.testc1 <- ( sum((avesFCFL.test$FemurCirc - lm_FC_c1.prd)^2)/n)
+loglog_FC_RMSE.testc1 <- ( sum((log(avesFCFL.test$FemurCirc) - loglog_FC_c1.prd)^2)/n)
+lmClade1_FC_RMSE.testc1 <- ( sum((avesFCFL.test$FemurCirc - lmClade1_FC_c1.prd)^2)/n)
+logClade1_FC_RMSE.testc1 <- ( sum((log(avesFCFL.test$FemurCirc) - logClade1_FC_c1.prd)^2)/n)
+poly2_FC_RMSE.testc1 <- ( sum((avesFCFL.test$FemurCirc - poly2_FC_c1.prd)^2)/n)
+poly2Clade1_FC_RMSE.testc1 <- ( sum((avesFCFL.test$FemurCirc - poly2Clade1_FC_c1.prd)^2)/n)
+poly3_FC_RMSE.testc1 <- ( sum((avesFCFL.test$FemurCirc - poly3_FC_c1.prd)^2)/n)
+poly3Clade1_FC_RMSE.testc1 <- ( sum((avesFCFL.test$FemurCirc - poly3Clade1_FC_c1.prd)^2)/n)
+lmClade2_FC_RMSE.testc1 <- ( sum((avesFCFL.test$FemurCirc - lmClade2_FC_c1.prd)^2)/n)
+logClade2_FC_RMSE.testc1 <- ( sum((log(avesFCFL.test$FemurCirc) - logClade2_FC_c1.prd)^2)/n)
+poly2Clade2_FC_RMSE.testc1 <- ( sum((avesFCFL.test$FemurCirc - poly2Clade2_FC_c1.prd)^2)/n)
+poly3Clade2_FC_RMSE.testc1 <- ( sum((avesFCFL.test$FemurCirc - poly3Clade2_FC_c1.prd)^2)/n)
+
+
+
+RMSE.test_c1 <- data.frame(type = 'test', 
+                      lm_FC_c1 = lm_FC_RMSE.testc1,
+                       loglog_FC_c1 = loglog_FC_RMSE.testc1,
+                       lmClade1_FC_c1 = lmClade1_FC_RMSE.testc1,
+                       logClade1_FC_c1 = logClade1_FC_RMSE.testc1,
+                       poly2_FC_c1 = poly2_FC_RMSE.testc1, 
+                       poly2Clade1_FC_c1 = poly2Clade1_FC_RMSE.testc1,
+                       poly3_FC_c1 = poly3_FC_RMSE.testc1,
+                       poly3Clade1_FC_c1 = poly3Clade1_FC_RMSE.testc1,
+                       lmClade2_FC_c1 = lmClade2_FC_RMSE.testc1,
+                       logClade2_FC_c1 = logClade2_FC_RMSE.testc1, 
+                       poly2Clade2_FC_c1 = poly2Clade2_FC_RMSE.testc1,
+                       poly3Clade2_FC_c1 =  poly3Clade2_FC_RMSE.testc1)
+
+
+RMSE_c1 <- rbind(RMSE.train_c1, RMSE.test_c1)
+
+#MSE 
+
+RMSE.long_c1 <- RMSE_c1 %>% pivot_longer(-type, names_to = 'model', values_to = 'MSE')
+
+
+#################################################### Cross Validation ##############################################
+
+###########
+# Preliminar Analysis: Case 2: Split Cross validation k fold
+###########
+
+avesFCFL.cv <- avesFCFL
+
+###########
+# Fit models in training data
+###########
+
+
+train.control <- trainControl(method = "repeatedcv", 
+                              number = 10, repeats = 20)
+
+# Fit lineal model
+lm_FC_c2 <- train(FemurCirc ~ FemurLen, data = avesFCFL.cv,method = "lm",
+               trControl = train.control)
+
+# Fit loglog model
+loglog_FC_c2 <- train(log(FemurCirc) ~ log(FemurLen), data = avesFCFL.cv, method = "lm",
+               trControl = train.control)
+
+# Multiple linear regression Clade 1
+lmClade1_FC_c2 <- train(FemurCirc ~ FemurLen + Clade.1, data = avesFCFL.cv, method = "lm",
+               trControl = train.control)
+
+
+# Multiple loglog linear regression Clade 1
+logClade1_FC_c2 <- train(log(FemurCirc) ~ log(FemurLen) + Clade.1, data = avesFCFL.cv, method = "lm",
+               trControl = train.control)
+
+
+# Multiple linear regression Clade 2
+lmClade2_FC_c2 <- train(FemurCirc ~ FemurLen + Clade.2, data = avesFCFL.cv, method = "lm",
+               trControl = train.control)
+
+# Multiple loglog linear regression Clade 2
+logClade2_FC_c2 <- train(log(FemurCirc) ~ log(FemurLen) + Clade.2, data = avesFCFL.cv, method = "lm",
+               trControl = train.control)
+
+# Poly model 
+poly2_FC_c2 <- train(FemurCirc ~ poly(FemurLen,2), data = avesFCFL.cv, method = "lm",
+               trControl = train.control)
+
+
+# Multiple Poly model Clade 1
+poly2Clade1_FC_c2 <- train(FemurCirc ~ poly(FemurLen,2) + Clade.1 , data = avesFCFL.cv, method = "lm",
+               trControl = train.control)
+
+# Multiple Poly model Clade 2
+poly2Clade2_FC_c2 <- train(FemurCirc ~ poly(FemurLen,2) + Clade.2, data = avesFCFL.cv, method = "lm",
+               trControl = train.control)
+
+
+# Poly 3model 
+poly3_FC_c2 <- train(FemurCirc ~ poly(FemurLen,3), data = avesFCFL.cv, method = "lm",
+               trControl = train.control)
+
+# Multiple Poly3 model Clade 1
+poly3Clade1_FC_c2 <- train(FemurCirc ~ poly(FemurLen,3) + Clade.1 , data = avesFCFL.cv, method = "lm",
+               trControl = train.control)
+
+# Multiple Poly3 model Clade 2
+poly3Clade2_FC_c2 <- train(FemurCirc ~ poly(FemurLen,3) + Clade.2, data = avesFCFL.cv, method = "lm",
+               trControl = train.control)
+
+
+fitvals_FC.cv_c2 <- data.frame(type = "cv",
+                         FC_FL = lm_FC_c2$results$RMSE, 
+                         logFC_logFL = exp(loglog_FC_c2$results$RMSE),
+                         FC_FL.Clade1 = lmClade1_FC_c2$results$RMSE,
+                         logFC_logFL.Clade1 = exp(logClade1_FC_c2$results$RMSE),
+                         FC_FL.Cl2 = lmClade2_FC_c2$results$RMSE,
+                         logFC_logFL.Clade2 = exp(logClade2_FC_c2$results$RMSE),
+                         FC_poly2FL = poly2_FC_c2$results$RMSE,
+                         FC_poly2FL.Clade1 = poly2Clade1_FC_c2$results$RMSE,
+                         FC_poly2FL.Clade2 = poly2Clade2_FC_c2$results$RMSE,
+                         FC_poly3FL = poly3_FC_c2$results$RMSE,
+                         FC_poly3FL.Clade1 = poly3Clade1_FC_c2$results$RMSE,
+                         FC_poly3FL.Clade2 = poly3Clade2_FC_c2$results$RMSE)
+
+
+fitvals_FC.long_c2 <- fitvals_FC.cv_c2 %>% pivot_longer(-type, names_to = 'model', values_to = 'RMSE')
+
+
+
+```
+
+After fitting the models, linear log-log models had the best fit ( @fig-cap-margin-plot2 A) and performance in contrast to polynomial ones ( @fig-cap-margin-plot2 B, C). However, the fit increased when the model considered taxonomic levels, even when they had 30 times more of degree of freedom ( @tbl-cap-marging-tab4 ). Thus, the best model to predict femur circumference was a linear log-log model that considered taxonomic order levels ($logFemurCirc \sim{} 1.1276413 logFemurlen + Orders -1.7878937$). It has -1138.5410 in AIC, more than 500 units less that the next best model. It also had the best adjusted $R^2$ with 0.984. Making this, a relationship almost perfect and really convenient to predict femur circumference from femur length. It also support the idea that the ratio between those variable is conserved in low taxonomic levels [@OgormanHone2012]. This contrast the affirmation that Femur circumference is not affected by ancestry [@Campione2017]; however this effect is not evident in higher taxonomic levels such as species, genera or families, but it is clear here, that order level improve considerably the fit of the model.
+
+```{r }
+#| message: false
+#| warning: false
+#| echo: false
+#| label: fig-cap-margin-plot2
+#| fig-cap: "Fit and performance of models to predict femur circumference. A) Relationship femur Length and femur circumference, and how different models fit to the real data. B) Mean standard error for the first cases (train/test subsets). C) Root mean standard error to evaluate performance model in K-fold cross validation"
+#| cap-location: margin
+
+
+Models_c1 <- ggplot(data = fitvals_FC.long_c1) +
+  geom_line(aes(x = FemurLen, y = FemurCirc, color = model)) +
+  geom_point(data = avesFCFL.train, aes(x=FemurLen, y=FemurCirc), size = 1, alpha = 1, color = 'darkgrey')+
+   theme(legend.text = element_text(size = 7),legend.direction = "vertical",legend.position ="bottom")+
+  theme(axis.title = element_text(size = 10))+
+ labs(y = "Femur Circumference (mm)", x = "Femur Lenght (mm)")+
+  guides(col = guide_legend(nrow = 8))
+
+
+
+# Extract the legend. Returns a gtable
+legModels_c1 <- get_legend(Models_c1)
+
+
+# RMSE case 1
+RMSE.longc1 <-ggplot(data = RMSE.long_c1, aes(x = model, y = MSE)) +
+  geom_line(aes(group = type, color = type) )+ 
+  geom_point(aes(color = model), size= 1)+
+scale_x_discrete(guide = guide_axis(angle = 45))+
+geom_segment(aes(x = 5, y = 100, xend = 5, yend = 20), color= "darkred",
+                 arrow = arrow(length = unit(0.5, "cm")))+
+  theme(axis.title = element_text(size = 10), legend.position="none")+
+ labs(y = "MSE", x = "Models")
+
+# RMSE case 1
+RMSE.longc2 <-ggplot(data = fitvals_FC.long_c2 , aes(x = model, y = RMSE)) +
+  geom_line(aes(group = type, color = type) )+ 
+  geom_point(aes(color = model), size= 1)+
+scale_x_discrete(guide = guide_axis(angle = 45))+
+geom_segment(aes(x = 12, y = 10, xend = 12, yend = 2), color= "darkred",
+                 arrow = arrow(length = unit(0.5, "cm")))+
+  theme(axis.title = element_text(size = 10), legend.position="none")+
+ labs(y = "RMSE", x = "Models")
+
+ggarrange( Models_c1+theme(legend.position="none") , as_ggplot(legModels_c1), RMSE.longc1, RMSE.longc2,
+          labels = c("A","", "B", "C"),
+          ncol = 2, nrow = 2)
+```
+
+```{r}
+#| tbl-cap-location: margin
+#| message: false
+#| warning: false
+#| echo: false
+#| label: tbl-cap-marging-tab4
+#| tbl-cap: "Model selection by AIC criterion."
+
+AICs <- dplyr::tibble(cbind(Models = c("FC_FL", 
+                                       "logFC_logFL", 
+                                       "FC_FL.Clade1", 
+                                       "logFC_logFL.Clade1", 
+                                       "FC_poly2FL", 
+                                       "FC_poly2FL.Clade1", 
+                                       "FC_poly3FL", 
+                                       "FC_poly3FL.Clade1", 
+                                       "FC_FL.Clade2",
+                                       "logFC_logFL.Clade2",
+                                       "FC_poly2FL.Clade2", 
+                                       "FC_poly3FL.Clade2"),
+                            AIC(lm_FC_c1,
+                                loglog_FC_c1, 
+                                lmClade1_FC_c1,
+                                logClade1_FC_c1,
+                                poly2_FC_c1, 
+                                poly2Clade1_FC_c1,
+                                poly3_FC_c1,
+                                poly3Clade1_FC_c1, 
+                                lmClade2_FC_c1,
+                                logClade2_FC_c1, 
+                                poly2Clade2_FC_c1, 
+                                poly3Clade2_FC_c1 ), 
+                            adjR2 =c(
+                              summary(lm_FC_c1)$r.squared,
+                              summary(loglog_FC_c1)$r.squared,
+                              summary(lmClade1_FC_c1)$r.squared,
+                              summary(logClade1_FC_c1)$r.squared,
+                              summary(poly2_FC_c1)$r.squared,
+                              summary(poly2Clade1_FC_c1)$r.squared,
+                              summary(poly3_FC_c1)$r.squared,
+                              summary(poly3Clade1_FC_c1)$r.squared,
+                              summary(lmClade2_FC_c1)$r.squared,
+                              summary(logClade2_FC_c1)$r.squared,
+                              summary(poly2Clade2_FC_c1)$r.squared,
+                              summary(poly3Clade2_FC_c1 )$r.squared ))) |> gt::gt() |> 
+  gt::tab_options(table.width =  "100%", 
+                  column_labels.background.color = "grey90",
+                  table.font.size = 10) |> 
+  gtExtras::gt_highlight_rows( rows = 10,
+                               fill = "red",
+                               bold_target_only = TRUE,
+                               target_col = 1:4) 
+# #|> 
+ # tab_caption(caption = md("**Table 4** "))
+
+
+AICs
+```
+
+Subsequently, using the best model I predicted the femur circumference for the extant specimens in Palaeognathae and then I included them to get the main dataset to predict body mass.
+
+After putting together both preliminary database, I filtered by observations with body mass gotten directly from the especimens. It resulted on only observations from extant species (crow-group of Ave). Thus, I got a dataset with 1036 observations, 27 orders and 446 species ( @tbl-cap-marging-tab5 ). Although it only represent 10% of bird biodiversity, this dataset twice times bigger than the biggest data set used to fit or evaluate models to predict body mass in Theropoda [@Fieldetal2013,@Campioneetal2014].
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| 
+# predicting femur circumference
+
+clde <- levels(as.factor(avesFCFL$Clade.2))
+
+pred <- data |> 
+  filter(Aves == "Y" & is.na(FemurCirc) & !is.na(FemurLen) & as.factor(Clade.2) %in% clde) 
+
+
+data6 <- anti_join(data,pred)
+
+predictions <- round(exp(predict(logClade2_FC_c2, newdata = pred[,c("FemurLen", "Clade.2")])),2)
+
+pred2 <- pred |> mutate(FemurCirc = predictions, typeFC = rep("Predicted",nrow(pred))) 
+
+data6 <- data6 |> mutate(typeFC = rep("Observation",nrow(data6)))
+
+#
+new <- rbind(data6,pred2)
+
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+### Data set for Body Mass
+newAves <-new |> filter(Aves == "Y") |> mutate(Ref = ifelse( Sec_Ref == "Campione_et_al_(2014)", "Campione_et_al_2014", ifelse( Sec_Ref == "Field_et_al_(2013)","Field_et_al_2013", ifelse( typeFC == "Predicted", "NewSource", "NewSource"))))  |> filter(!is.na(BM.g) & !is.na(FemurCirc))
+
+
+```
+
+```{r}
+#| tbl-cap-location: margin
+#| message: false
+#| warning: false
+#| echo: false
+#| label: tbl-cap-marging-tab5
+#| tbl-cap: "Main dataset used to fit models to predict body mass"
+table5 <- newAves |> summarise(orders = length(unique(Clade.2)), Species = length(unique(Taxon)), Obs = length(Clade.1))
+
+gt(table5) |> tab_options(table.width =  "100%")|> 
+  tab_options(column_labels.background.color = "grey90")
+##|>
+ ## tab_caption(caption = md("**Table 5** ummary of dataset for predicting femur circumference in ##Palaeognathae"))
+
+```
+
+#### Selecting models to predict Body Mass
+
+Although I tried to increase the sample in Palaeognathae group, it is evident the bias that currently exist to fit models using the extant species to predict body mass. Palaeognathae is only 2% of the dataset. In other words, for every Palaeognathae observation there is 50 from Neognathae. However, 70% of the Palaeognathae sample is included for the first time in this study. Given that, Campion et al 2014 has been the only one which have included some Palaeognathaes, from which only one observation was \*Sturthrio camelus\*, the biggest flighless modern bird [@Campioneetal2014]. Here, I included 12 more sample from that species and 59 more from others orders in Palaeognathae ( @fig-cap-margin-plot3 ).
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| label: fig-cap-margin-plot3
+#| fig-cap: " Distribution of the main dataset uset to fit and predict body mass. A) Distribution of body mass. B) Distribution of femur circimference. C) Relationship of Body mass and femur circumference"
+#| cap-location: margin
+
+ratio <- length(which(newAves$Clade.1 == "Palaeognathae"))/length(which(newAves$Clade.1 == "Neognathae"))
+
+# Femur Circumference distribution
+BMHist <- ggplot(newAves) +
+      geom_histogram(aes( x=BM.g, fill= Clade.1)) + 
+  theme(axis.title = element_text(size = 10), legend.position="none")+
+ labs(y = "Count", x = "Body mass (g)")
+
+# Femur Length distribution
+FcHist <- ggplot(newAves) + 
+  geom_histogram(aes( x=FemurCirc, fill= Clade.1)) + 
+  theme(axis.title = element_text(size = 10), legend.position="none")+
+ labs(y = "Count", x = "Femur Circumference (mm)")
+# Plot FC ~ FL
+BMFc <- ggplot(newAves, aes(x=FemurCirc, y=BM.g)) +
+      geom_point(aes(color= Clade.1))+
+   theme(legend.text = element_text(size = 7),legend.direction = 'vertical',legend.position ="bottom")+
+  theme(axis.title = element_text(size = 10))+
+ labs(y = "Body mass (g)", x = "Femur Circunference (mm)")
+
+# Extract the legend. Returns a gtable
+leg <- get_legend(BMFc)
+
+
+
+ggarrange(BMHist, FcHist, BMFc+theme(legend.position="none") , as_ggplot(leg), 
+          labels = c("A", "B", "C"),
+          ncol = 2, nrow = 2)
+
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+
+###########
+# Main Analysis BM ~ FC: Case 1: Split database in train and test subsets
+###########
+
+sample.test <-sample(x = 1:nrow(newAves),size = ceiling(nrow(newAves)* 0.2))
+
+avesBMFC.test <- newAves[sample.test,]
+avesBMFC.train <- newAves[-sample.test,]
+
+###########
+# Fit models in training data
+###########
+
+# Fit lineal model
+lm_BM_c1 <- lm(BM.g ~ FemurCirc, data = avesBMFC.train)
+
+# Fit loglog model
+loglog_BM_c1 <- lm(log(BM.g) ~ log(FemurCirc), data = avesBMFC.train)
+
+# Poly model 
+poly2_BM_c1 <- lm(BM.g ~ poly(FemurCirc,2), data = avesBMFC.train)
+
+# Poly 3model 
+poly3_BM_c1 <- lm(BM.g ~ poly(FemurCirc,3), data = avesBMFC.train)
+
+# Spline model 1 knots
+library(splines)
+Spline_BM1_c1 <- lm(BM.g ~bs(FemurCirc, knots = 50), data = avesBMFC.train)
+ss.AIC1 <- ss(avesBMFC.train$FemurCirc, avesBMFC.train$BM.g, method = "AIC", nknots = 50)
+
+# Spline model 2 knots
+Spline_BM2_c1 <- lm(BM.g ~ bs(FemurCirc, knots = c(25, 50)), data = avesBMFC.train)
+ss.AIC2 <- ss(avesBMFC.train$FemurCirc, avesBMFC.train$BM.g, method = "AIC", nknots = c(25, 50))
+
+# Spline model 2 knots
+Spline_BM3_c1 <- lm(BM.g ~ bs(FemurCirc, knots = c(25, 50, 100)), data = avesBMFC.train)
+ss.AIC3 <- ss(avesBMFC.train$FemurCirc, avesBMFC.train$BM.g, method = "AIC", nknots = c(25, 50, 100))
+
+
+
+fitvals_BM.train_c1 <- data.frame(FemurCirc = avesBMFC.train$FemurCirc, 
+                         trueBM = avesBMFC.train$BM.g,
+                         BM_FC = lm_BM_c1$fitted.values, 
+                         logBM_logFC = exp(loglog_BM_c1$fitted.values),
+                         BM_poly2FC = poly2_BM_c1$fitted.values,
+                         BM_poly3FC = poly3_BM_c1$fitted.values,
+                         BM_spline1= Spline_BM1_c1$fitted.values,
+                         BM_spline2= Spline_BM2_c1$fitted.values,
+                         BM_spline3= Spline_BM3_c1$fitted.values)
+
+
+fitvals_BM.long_c1 <- fitvals_BM.train_c1 %>% pivot_longer(-FemurCirc, names_to = 'model', values_to = 'BM.g')
+
+
+###########
+# RRMSE in training data: Case 1
+###########
+
+n <- length(avesBMFC.train$BM.g)
+
+
+lm_BM_MSE.trainc1 <- ( sum((avesBMFC.train$BM.g - lm_BM_c1$fitted.values)^2)/n)
+loglog_BM_MSE.trainc1 <- ( sum((log(avesBMFC.train$BM.g) - loglog_BM_c1$fitted.values)^2)/n)
+poly2_BM_MSE.trainc1 <- ( sum((avesBMFC.train$BM.g - poly2_BM_c1$fitted.values)^2)/n)
+poly3_BM_MSE.trainc1 <- ( sum((avesBMFC.train$BM.g - poly3_BM_c1$fitted.values)^2)/n)
+Spline_BM1_MSE.trainc1 <- ( sum((avesBMFC.train$BM.g - Spline_BM1_c1$fitted.values)^2)/n)
+Spline_BM2_MSE.trainc1<- ( sum((avesBMFC.train$BM.g - Spline_BM2_c1$fitted.values)^2)/n)
+Spline_BM2_MSE.trainc1<- ( sum((avesBMFC.train$BM.g - Spline_BM3_c1$fitted.values)^2)/n)
+
+
+MSE_BM.train_c1 <- data.frame(type = 'train', 
+                         BM_FC = lm_BM_MSE.trainc1, 
+                         logBM_logFC = loglog_BM_MSE.trainc1,
+                         BM_poly2FC = poly2_BM_MSE.trainc1,
+                         BM_poly3FC = poly3_BM_MSE.trainc1,
+                         BM_spline1= Spline_BM1_MSE.trainc1,
+                         BM_spline2= Spline_BM2_MSE.trainc1,
+                         BM_spline3= Spline_BM2_MSE.trainc1)
+
+
+###########
+# predicting  in test data
+###########
+
+# Fit lineal model
+lm_BM_c1.prd <- predict(lm_BM_c1, newdata = data.frame(FemurCirc = avesBMFC.test$FemurCirc))
+
+# Fit loglog model
+loglog_BM_c1.prd <-predict(loglog_BM_c1, newdata = data.frame(FemurCirc = avesBMFC.test$FemurCirc))
+
+# Poly model 
+poly2_BM_c1.prd <- predict(poly2_BM_c1, newdata = data.frame(FemurCirc = avesBMFC.test$FemurCirc))
+
+# Poly 3model 
+poly3_BM_c1.prd <- predict(poly3_BM_c1, newdata = data.frame(FemurCirc = avesBMFC.test$FemurCirc))
+
+# Spline model 1 knots
+library(splines)
+Spline_BM1_c1.pred <- predict(Spline_BM1_c1, newdata = data.frame(FemurCirc = avesBMFC.test$FemurCirc))
+
+# Spline model 2 knots
+Spline_BM2_c1.prd <- predict(Spline_BM2_c1, newdata = data.frame(FemurCirc = avesBMFC.test$FemurCirc))
+
+# Spline model 2 knots
+Spline_BM3_c1.prd <- predict(Spline_BM3_c1, newdata = data.frame(FemurCirc = avesBMFC.test$FemurCirc))
+
+
+
+
+###########
+# RRMSE in predicting data set: Case 1
+###########
+
+n <- length(avesBMFC.test$FemurCirc)
+
+
+lm_BM_MSE.testc1 <- ( sum((avesBMFC.train$BM.g - lm_BM_c1.prd)^2)/n)
+loglog_BM_MSE.testc1 <- ( sum((log(avesBMFC.train$BM.g) - loglog_BM_c1.prd)^2)/n)
+poly2_BM_MSE.testc1 <- ( sum((avesBMFC.train$BM.g - poly2_BM_c1.prd)^2)/n)
+poly3_BM_MSE.testc1 <- ( sum((avesBMFC.train$BM.g - poly3_BM_c1.prd)^2)/n)
+Spline_BM1_MSE.testc1 <- ( sum((avesBMFC.train$BM.g - Spline_BM1_c1.pred)^2)/n)
+Spline_BM2_MSE.testc1 <- ( sum((avesBMFC.train$BM.g - Spline_BM2_c1.prd)^2)/n)
+Spline_BM3_MSE.testc1 <- ( sum((avesBMFC.train$BM.g - Spline_BM3_c1.prd)^2)/n)
+
+
+MSE_BM.test_c1 <- data.frame(type = 'test', 
+                        BM_FC = lm_BM_MSE.testc1, 
+                         logBM_logFC = loglog_BM_MSE.testc1,
+                         BM_poly2FC = poly2_BM_MSE.testc1,
+                         BM_poly3FC = poly3_BM_MSE.testc1,
+                         BM_spline1= Spline_BM1_MSE.testc1,
+                         BM_spline2= Spline_BM2_MSE.testc1,
+                         BM_spline3= Spline_BM3_MSE.testc1)
+
+
+MSE_BM_c1 <- rbind(MSE_BM.train_c1, MSE_BM.test_c1)
+
+#MSE 
+
+MSE.long_BM_c1 <- MSE_BM_c1 %>% pivot_longer(-type, names_to = 'model', values_to = 'MSE')
+
+
+#################################################### Cross Validation ##############################################
+
+###########
+# Preliminar Analysis: Case 2: Split Cross validation k fold
+###########
+
+avesBMFC.cv <- newAves
+
+###########
+# Fit models in training data
+###########
+
+
+train.control <- trainControl(method = "LOOCV")
+# Fit lineal model
+lm_BM_c2 <- train(BM.g ~ FemurCirc, data = avesBMFC.cv,method = "lm",
+               trControl = train.control)
+
+# Fit loglog model
+loglog_BM_c2 <- train(log(BM.g) ~ log(FemurCirc), data = avesBMFC.cv,method = "lm",
+               trControl = train.control)
+
+# Poly model 
+poly2_BM_c2 <- train(BM.g ~ poly(FemurCirc,2), data = avesBMFC.cv,method = "lm",
+               trControl = train.control)
+
+# Poly 3model 
+poly3_BM_c2 <-  train(BM.g ~ poly(FemurCirc,3), data = avesBMFC.cv,method = "lm",
+               trControl = train.control)
+
+# Spline model 1 knots
+Spline_BM1_c2 <-  train(BM.g ~bs(FemurCirc, knots = 50), data = avesBMFC.cv,method = "lm",
+               trControl = train.control)
+
+# Spline model 2 knots
+Spline_BM2_c2 <- train(BM.g ~ bs(FemurCirc, knots = c(25, 50)), data = avesBMFC.cv,method = "lm",
+               trControl = train.control)
+
+# Spline model 2 knots
+Spline_BM3_c2 <- train(BM.g ~ bs(FemurCirc, knots = c(25, 50, 100)), data = avesBMFC.cv,method = "lm",
+               trControl = train.control)
+
+
+
+fitvals_BM.cv_c2 <- data.frame(type = "cv",
+                         BM_FC = lm_BM_c2$results$RMSE, 
+                         logBM_logFC = loglog_BM_c2$results$RMSE,
+                         BM_poly2FC = poly2_BM_c2$results$RMSE,
+                         BM_poly3FC = poly3_BM_c2$results$RMSE,
+                         BM_spline1= Spline_BM1_c2$results$RMSE,
+                         BM_spline2= Spline_BM2_c2$results$RMSE,
+                         BM_spline3= Spline_BM3_c2$results$RMSE)
+
+
+fitvals_BM.long_c2 <- fitvals_BM.cv_c2 %>% pivot_longer(-type, names_to = 'model', values_to = 'RMSE')
+
+
+```
+
+After fitting models, like in the first analysis, linear log-log model was the best model and the model to predict body mass. It got 809.70 in AIC criterion, around 800 units fewer than the second best model ( @tbl-cap-marging-tab4 ). Likewise, MSE and RME showed that this model has the best performance ( @fig-cap-margin-plot4). It is similar to previous studies in which re-scale in log this kind of variables helps to normalize the residuals, improves the fit of the model, and improve the predictability [@More2022]. However, re-escaled models have some weaknesses because one can not interpret it in its original units, back-transformation yields unequal confident intervals and prediction intervals, and finally, back-transformation demand to include the error or residual portion[@Neyman1960]. In contrast to the error measurements (MSEand RMSE), linear log-log model was not the best adjusted $R^2$ ( @tbl-cap-marging-tab4 ). It was polynomial in second degree. It agree with Campione et al. (2014), who propose that even when statistically a log-linear model would be th best, in biological terms we should consider to predict body mass in dinosaurs using a polynomial model in second degree because body mass is a allometric feature. However, considering all problems that bring re-scale variables to prediction, it could be worth it, evaluate this problem from a machine learning view, considering the pros and cons of the used approaches.
+
+```{r }
+#| message: false
+#| warning: false
+#| echo: false
+#| #| label: fig-cap-margin-plot4
+#| fig-cap: "Fit and performance of models to predict Body mass. A) Relationship Body mass and femur circumference, and how different models fit to the real data. B) Mean standard error for the first cases (train/test subsets). C) Root mean standard error to evaluate performance model in LOOC cross validation"
+#| cap-location: margin
+
+
+Models_c1 <- ggplot(data = fitvals_BM.long_c1) +
+  geom_line(aes(x = FemurCirc, y = BM.g, color = model)) +
+  geom_point(data = avesBMFC.cv, aes(x = FemurCirc, y = BM.g), size = 1, alpha = 1, color = 'darkgrey')+
+   theme(legend.text = element_text(size = 7),legend.direction = "vertical",legend.position ="bottom")+
+  theme(axis.title = element_text(size = 10))+
+ labs(y = "Body mass (g)", x = "Femur Circumference (mm)")+
+  guides(col = guide_legend(nrow = 8))
+
+
+
+# Extract the legend. Returns a gtable
+legModels_c1 <- get_legend(Models_c1)
+
+
+# RMSE case 1
+RMSE.longc1 <-ggplot(data = MSE.long_BM_c1, aes(x = model, y = MSE)) +
+  geom_line(aes(group = type, color = type) )+ 
+  geom_point(aes(color = model), size= 1)+
+scale_x_discrete(guide = guide_axis(angle = 45))+
+geom_segment(aes(x = 7, y = 200000000, xend = 7, yend = 20), color= "darkred",
+                 arrow = arrow(length = unit(0.5, "cm")))+
+  theme(axis.title = element_text(size = 10), legend.position="none")+
+ labs(y = "MSE", x = "Models")
+
+# RMSE case 1
+RMSE.longc2 <-ggplot(data = fitvals_BM.long_c2 , aes(x = model, y = RMSE)) +
+  geom_line(aes(group = type, color = type) )+ 
+  geom_point(aes(color = model), size= 1)+
+scale_x_discrete(guide = guide_axis(angle = 45))+
+geom_segment(aes(x = 7, y = 2000, xend = 7, yend = 2), color= "darkred",
+                 arrow = arrow(length = unit(0.5, "cm")))+
+  theme(axis.title = element_text(size = 10), legend.position="none")+
+ labs(y = "RMSE", x = "Models")
+
+ggarrange( Models_c1+theme(legend.position="none") , as_ggplot(legModels_c1), RMSE.longc1, RMSE.longc2,
+          labels = c("A","", "B", "C"),
+          ncol = 2, nrow = 2)
+
+```
+
+```{r}
+#| tbl-cap-location: margin
+#| message: false
+#| warning: false
+#| echo: false
+#| label: tbl-cap-marging-tab6
+#| tbl-cap: "Model selection by AIC criterion."
+
+
+
+AICs <- dplyr::tibble(as.data.frame(cbind(Models = c("BM_FC",
+                                       "logBM_logFC",
+                                       "BM_poly2FC",
+                                       "BM_poly3FC",
+                                       "BM_spline1",
+                                       "BM_spline2",
+                                       "BM_spline3"),
+                                       DF = c(3,3,4,5,9,10,10),
+                           AIC=c( AIC(lm_BM_c1, 
+                                loglog_BM_c1,
+                                poly2_BM_c1,
+                                poly3_BM_c1)$AIC, 
+                                ss.AIC1$aic[1],
+                                ss.AIC2$aic[1],
+                                ss.AIC3$aic[1]),
+                            
+                            adjR2 =c(
+                              summary(lm_BM_c1)$r.squared,
+                              summary(loglog_BM_c1)$r.squared,
+                              summary(poly2_BM_c1)$r.squared,
+                              summary(poly3_BM_c1)$r.squared,
+                              summary(Spline_BM1_c2)$r.squared,
+                              summary(Spline_BM2_c2)$r.squared,
+                              summary(Spline_BM3_c2)$r.squared
+                              )))) |> gt::gt() |> 
+  gt::tab_options(table.width =  "100%", 
+                  column_labels.background.color = "grey90",
+                  table.font.size = 10) |> 
+  gtExtras::gt_highlight_rows( rows = 2,
+                               fill = "red",
+                               bold_target_only = TRUE,
+                               target_col = 1:4)
+##|> 
+ ## tab_caption(caption = md("**Table 6** "))
+
+
+AICs
+```
+
+### Evaluating model performance
+
+Body mass prediction in dinosaurs is a one-hundred-years question. It is relevant questions that have help to hypothesized evolutionary patterns about gigantisms in those enigmatic animals. However, although dinosaurs are the most charismatic fossils, there are some fossils such as dodo birds or terror birds which are non-dinosaurs extinct species. Those species are related with modern bird, and their femur circumference overlap with the femur circumference from some current bird such as some clades in Palaeognathae [@Crouchetal2019]. Allow me to guess that those birds also had a body mass similar to some living species. Following the same idea, different studies have used the same model [@Campionetal2014] to predict both non-avian dinosaurs and groups closes to modern birds.
+
+Following this idea, I evaluated how model performed predicting non-avian Theropods (Big animals) and Palaeognathaes (modern birds). As a result, Campion et al 2014 was the best model to predict body mass in dinosaurs ( @fig-cap-margin-plot7 ). However, we should keep in mind that it is not a real prediction, because we will never know the real body mass from fossils [@Campionetal2014], rather than, here what I actually are evaluating is how those models are close to the body mass estimation by VD approaches. It support results presented by Campione et al. 2014 and Campion and Evans 2020. They show that, even when that model is a mathematical formula arising from an empirical model to predict quadrupedal body mass, this model is the closest to the VD estimations. However, any studies have evaluated how this preferred model perform inside the crow-group of birds so far. As results I found that this prefered model to predict body mass does not perform well inside Aves clade. In contrast, the model fitted in this study performed better than Campion et al 2014, and close to Field et al 2013 ( @fig-cap-margin-plot8 ). Apparently, for animals over 80 mm in femur circumference Campion et al 2014 is overestimating the body mass. This has strong consequences given that most of the fossils in the crown-group of birds has been estimated using Campion's et al 2014 model.
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+
+
+# Theropoda
+
+Dinos <- read_csv('Biol607_files/data/Estimated.csv')
+
+Andersonetal1985 <-   0.16 * Dinos$FemurCirc^2.37699
+
+CampbellMarcus1992 <- 10^(-0.065 + 2.411*log10(Dinos$FemurCirc))
+
+CampioneEtal2014 <- 10^(-0.683 + 2.754*log10(Dinos$FemurCirc))
+
+FieldEtal2013 <- exp(-0.11 + 2.4*log(Dinos$FemurCirc))
+
+RomeroAlarcon2023 <-  exp(-0.09121 + 2.37699*log(Dinos$FemurCirc))
+
+
+
+modelsPredict1 <- as.data.frame(cbind(trueBM.g = Dinos$BM.g, FemurCirc = Dinos$FemurCirc, CampbellMarcus1992, FieldEtal2013, CampioneEtal2014, RomeroAlarcon2023, Andersonetal1985))
+
+modelsPredict.BackDinos <- modelsPredict1 |> pivot_longer(cols = c(CampbellMarcus1992, FieldEtal2013, CampioneEtal2014, RomeroAlarcon2023, Andersonetal1985), names_to = "Models", values_to = "predBM.g")
+
+
+
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| 
+modelsPPE <- modelsPredict.BackDinos |> group_by(Models) |> mutate(PPE = (abs(as.numeric(trueBM.g) - as.numeric(predBM.g))/as.numeric(predBM.g))/100) 
+
+meanPPE.th <- modelsPPE |> group_by(Models) |> summarize( MPPE = mean(PPE), sdPE = sd(PPE))
+
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| label: fig-cap-margin-plot7
+#| fig-cap: "Predicting body mass in non-avian Theropods. A) how models fit to the values predicted by VD apprach. B) Mean standard error - model performance"
+#| cap-location: margin
+
+
+modelsTheropoda <- ggplot(data = modelsPredict.BackDinos) +
+  geom_smooth(aes(y = predBM.g, x = FemurCirc, color = Models)) +
+  geom_point(data = Dinos,aes(y = BM.g, x = FemurCirc, shape = Method))+
+  theme(axis.title = element_text(size = 10))+
+  labs(y = "VD-Body Mass (g)", x = "Femur Circumference")
+
+RMSE.Theropoda <-ggplot(data = meanPPE.th, aes(x = Models, y = MPPE)) +
+   geom_line(aes(group= 1), color = "lightgreen")+
+  geom_point(aes(color = Models), size= 4)+
+scale_x_discrete(guide = guide_axis(angle = 45))+
+geom_segment(aes(x = 3, y = 0.1, xend = 3, yend = 0.01), color= "darkred",
+                  arrow = arrow(length = unit(0.5, "cm")))+
+  theme(axis.title = element_text(size = 10))+
+ labs(y = "MPE", x = "Models")
+
+
+
+ggarrange( modelsTheropoda,RMSE.Theropoda,
+          labels = c("A", "B"),
+          ncol = 1, nrow = 2)
+
+
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| 
+#Palaeognathae
+
+palaeognathae <- newAves |> filter(Clade.1 == "Palaeognathae" & !is.na(BM.g) & !is.na(FemurCirc))
+Andersonetal1985 <-   0.16 * palaeognathae$FemurCirc^2.37699
+
+CampbellMarcus1992 <- 10^(-0.065 + 2.411*log10(palaeognathae$FemurCirc))
+
+CampioneEtal2014 <- 10^(-0.683 + 2.754*log10(palaeognathae$FemurCirc))
+
+FieldEtal2013 <- exp(-0.11 + 2.4*log(palaeognathae$FemurCirc))
+
+RomeroAlarcon2023 <-  exp(-0.09121 + 2.37699*log(palaeognathae$FemurCirc))
+
+
+modelsPredict1 <- as.data.frame(cbind(trueBM.g = palaeognathae$BM.g, FemurCirc = palaeognathae$FemurCirc, CampbellMarcus1992, FieldEtal2013, CampioneEtal2014, RomeroAlarcon2023,Andersonetal1985))
+
+modelsPredict.backPalae <- modelsPredict1 |> pivot_longer(cols = c(CampbellMarcus1992, FieldEtal2013, CampioneEtal2014, RomeroAlarcon2023,Andersonetal1985), names_to = "Models", values_to = "predBM.g")
+
+
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| 
+modelsPE <- modelsPredict.backPalae  |> group_by(Models) |> mutate(PE = (abs(as.numeric(trueBM.g) - as.numeric(predBM.g))/as.numeric(predBM.g))/ 100) 
+
+
+
+meansPPE.Pa <- modelsPE |> group_by(Models) |> summarize( MPE = mean(PE), sdPPE = sd(PE))
+
+
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| label: fig-cap-margin-plot8
+#| fig-cap: "Predicting body mass in non-avian Palaeognathae. A) how models fit to the values predicted by VD apprach. B) Mean standard error - model performance"
+#| cap-location: margin
+
+
+
+
+modelsPala <- ggplot(data = modelsPredict.backPalae) +
+  geom_smooth(aes(y = predBM.g, x = FemurCirc, color = Models)) +
+  geom_point(data = palaeognathae,aes(y = BM.g, x = FemurCirc)) + 
+  theme(axis.title = element_text(size = 10))+
+  labs(y = "VD-Body Mass (g)", x = "Femur Circumference")
+
+RMSE.Pala <-ggplot(data = meansPPE.Pa, aes(x = Models, y = MPE)) +
+   geom_line(aes(group= 1), color = "lightgreen")+
+  geom_point(aes(color = Models), size= 4)+
+scale_x_discrete(guide = guide_axis(angle = 45))+
+geom_segment(aes(x = 5, y = 0.1, xend = 5, yend = 0.01), color= "darkred",
+                  arrow = arrow(length = unit(0.5, "cm")))+
+  theme(axis.title = element_text(size = 10))+
+labs(y = "MPE", x = "Models")
+
+
+
+ggarrange( modelsPala,RMSE.Pala,
+          labels = c("A", "B"),
+          ncol = 1, nrow = 2)
+
+
+```
+
+## Conclusion
+
+Since sciences start to study dinosaurs, body mass of the biggest animals has been a constant issue to study physiological, ecological and evolutionary aspects in those iconic groups. However, gigantism is a pattern that not only is presented in dinosaurs, but also in other groups as birds. Thus, a good model to predict body mass should have the ability to perform well predicting in the range of the living birds (interpolation) as well as predict large body mass as in dinosaurs (Extrapolation). Otherwise, models to interpolate or extrapolate should be different or reevaluated. Thus, following the results in this study, although I could not improve the model including Palaeognathae samples, I discovered a interested pattern in which prediction could be depending on the size. It implies that models should evaluate considering the size or the range in which I want to predict, because not every fossil is a dinosaur and not every dinosaur is as big as a *Tyrannosaurus rex*.
+
+### References
+
+:::
