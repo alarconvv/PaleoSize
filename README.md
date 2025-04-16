@@ -19,8 +19,6 @@ The package includes a Shiny interface for interactive modeling, a comprehensive
 
 ## 📚 Package Goals
 
-This package fits within rOpenSci’s scope under *"Ecology, Evolution, and Environmental Science"*, and *"Data Retrieval and Publication"* as it:
-
 - Enables inference of ecological and evolutionary traits (body size)
 - Provides access to digitized morphometric data from historical sources
 - Facilitates open, reproducible workflows for scientific publication
